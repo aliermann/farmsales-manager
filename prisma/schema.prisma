@@ -1,0 +1,74 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id        String   @id @default(cuid())
+  name      String
+  email     String?
+  phone     String
+  address   String?
+  source    String   @default("manual") // manual, google, whatsapp
+  googleId  String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  sales     Sale[]
+  campaigns Campaign[]
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  name      String
+  price     Float
+  stock     Int      @default(0)
+  category  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  saleItems SaleItem[]
+}
+
+model Sale {
+  id         String    @id @default(cuid())
+  clientId   String
+  client     Client    @relation(fields: [clientId], references: [id])
+  total      Float
+  status     String    @default("pending") // pending, paid, cancelled
+  saleDate   DateTime  @default(now())
+  items      SaleItem[]
+  createdAt  DateTime  @default(now())
+}
+
+model SaleItem {
+  id        String  @id @default(cuid())
+  saleId    String
+  sale      Sale    @relation(fields: [saleId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  quantity  Int
+  price     Float
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  message     String
+  status      String   @default("draft") // draft, sent, cancelled
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  clients     Client[]
+  whatsappIds String[] // IDs das mensagens enviadas
+}
+
+model Integration {
+  id          String   @id @default(cuid())
+  type        String   // google, evolution
+  credentials Json
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
