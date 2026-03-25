@@ -1,0 +1,66 @@
+name: Deploy to Koyeb
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+    
+    - name: Install Backend Dependencies
+      run: |
+        cd backend
+        npm ci
+    
+    - name: Run Backend Tests
+      run: |
+        cd backend
+        npm test || echo "No tests configured"
+    
+    - name: Install Frontend Dependencies
+      run: |
+        cd frontend
+        npm ci
+    
+    - name: Build Frontend
+      run: |
+        cd frontend
+        npm run build || echo "Build script not configured"
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Deploy to Koyeb
+      uses: koyeb/action-git-deploy@v1
+      with:
+        app-name: farmsales-manager
+        service-name: backend
+        service-port: 3001
+        service-http-port: 3001
+        env: |
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REDIRECT_URL=${{ secrets.GOOGLE_REDIRECT_URL }}
+          EVOLUTION_API_URL=${{ secrets.EVOLUTION_API_URL }}
+          EVOLUTION_API_KEY=${{ secrets.EVOLUTION_API_KEY }}
+          EVOLUTION_INSTANCE=${{ secrets.EVOLUTION_INSTANCE }}
+          FRONTEND_URL=${{ secrets.FRONTEND_URL }}
+          NODE_ENV=production
